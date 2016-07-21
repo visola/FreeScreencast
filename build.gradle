@@ -1,0 +1,11 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'application'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'javax.media:jmf:2.1.1e'
+}
