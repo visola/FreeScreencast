@@ -15,7 +15,7 @@ public class Main {
   public static void main(String[] args) throws InterruptedException, IOException {
     ScreenRecorder recorder = new ScreenRecorder();
     recorder.start();
-    Thread.sleep(10000);
+    Thread.sleep(50000);
     recorder.stop();
 
     MediaLocator ml = new MediaLocator("file:" + new File("tmp/out.mov").getCanonicalPath());
