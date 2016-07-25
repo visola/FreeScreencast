@@ -9,3 +9,5 @@ repositories {
 dependencies {
   compile 'javax.media:jmf:2.1.1e'
 }
+
+mainClassName = 'com.visola.freescreencast.Main'
