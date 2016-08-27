@@ -26,12 +26,17 @@ import javax.media.protocol.ContentDescriptor;
 import javax.media.protocol.DataSource;
 import javax.media.protocol.FileTypeDescriptor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ImagesToVideo implements ControllerListener, DataSinkListener {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ImagesToVideo.class);
 
   public void imagesToVideo(int width, int height, float frameRate, File screenShotsFile, MediaLocator outML) throws FileNotFoundException {
     OutputDataSource dataSource = new OutputDataSource(width, height, frameRate, screenShotsFile);
 
-    System.out.println("Creating processor...");
+    LOGGER.debug("Creating processor...");
     final Processor p;
     try {
       p = Manager.createProcessor(dataSource);
@@ -42,10 +47,10 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
 
     p.addControllerListener(this);
 
-    System.out.println("Configuring processor...");
+    LOGGER.debug("Configuring processor...");
     p.configure();
     if (!waitForState(p, Processor.Configured)) {
-      System.out.println("Failed to configure the processor.");
+      LOGGER.error("Failed to configure the processor.");
       return;
     }
 
@@ -54,38 +59,38 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
     TrackControl tcs[] = p.getTrackControls();
     Format f[] = tcs[0].getSupportedFormats();
     if (f == null || f.length <= 0) {
-      System.out.println("The mux does not support the input format: " + tcs[0].getFormat());
+      LOGGER.error("The mux does not support the input format: " + tcs[0].getFormat());
       return;
     }
 
-    System.out.printf("Using format %s.%n", f[0].getEncoding());
+    LOGGER.debug("Using format %s.%n", f[0].getEncoding());
     tcs[0].setFormat(f[0]);
 
-    System.out.println("Realizing processing...");
+    LOGGER.debug("Realizing processing...");
     p.realize();
     if (!waitForState(p, Controller.Realized)) {
       System.out.println("Failed to realize the processor.");
       return;
     }
 
-    System.out.println("Creating data sink...");
+    LOGGER.debug("Creating data sink...");
     DataSink dsink;
     if ((dsink = createDataSink(p, outML)) == null) {
-      System.out.println("Failed to create a DataSink for the given output MediaLocator: " + outML);
+      LOGGER.error("Failed to create a DataSink for the given output MediaLocator: {}", outML);
       return;
     }
 
     dsink.addDataSinkListener(this);
     fileDone = false;
 
-    System.out.println("Start processing...");
+    LOGGER.debug("Start processing...");
 
     // OK, we can now start the actual transcoding.
     try {
       p.start();
       dsink.start();
     } catch (IOException e) {
-      System.out.println("IO error during processing");
+      LOGGER.error("IO error during processing", e);
       return;
     }
 
@@ -99,7 +104,7 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
     }
     p.removeControllerListener(this);
 
-    System.out.println("...done processing.");
+    LOGGER.debug("...done processing.");
 
     return;
   }
@@ -112,7 +117,7 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
    * Return false if the transition failed.
    */
   private boolean waitForState(Processor p, int state) {
-    System.out.printf("Waiting for state %s%n", state);
+    LOGGER.trace("Waiting for state {}", state);
     synchronized (waitSync) {
       try {
         while (p.getState() < state && stateTransitionOK) {
@@ -127,18 +132,18 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
   private DataSink createDataSink(Processor p, MediaLocator outML) {
     DataSource ds;
     if ((ds = p.getDataOutput()) == null) {
-      System.out.println("Something is really wrong: the processor does not have an output DataSource");
+      LOGGER.error("Something is really wrong: the processor does not have an output DataSource");
       return null;
     }
 
     DataSink dsink;
 
     try {
-      System.out.println("- create DataSink for: " + outML);
+      LOGGER.debug("- create DataSink for: " + outML);
       dsink = Manager.createDataSink(ds, outML);
       dsink.open();
     } catch (Exception e) {
-      System.out.println("Cannot create the DataSink: " + e);
+      LOGGER.error("Cannot create the DataSink", e);
       return null;
     }
 
@@ -147,7 +152,7 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
 
   @Override
   public void controllerUpdate(ControllerEvent event) {
-    System.out.printf("Controller event received: %s%n", event.getClass().getName());
+    LOGGER.debug("Controller event received: {}", event.getClass().getName());
     if (event instanceof ConfigureCompleteEvent
         || event instanceof RealizeCompleteEvent
         || event instanceof PrefetchCompleteEvent) {

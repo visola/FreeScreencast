@@ -1,28 +1,23 @@
 package com.visola.freescreencast;
 
-import java.awt.Dimension;
-import java.awt.Toolkit;
-import java.io.File;
 import java.io.IOException;
 
-import javax.media.MediaLocator;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
 
-import com.visola.freescreencast.processing.ImagesToVideo;
-import com.visola.freescreencast.record.ScreenRecorder;
+import com.visola.freescreencast.ui.SystemTrayManager;
 
+@SpringBootApplication
 public class Main {
 
   public static void main(String[] args) throws InterruptedException, IOException {
-    ScreenRecorder recorder = new ScreenRecorder();
-    recorder.start();
-    Thread.sleep(50000);
-    recorder.stop();
+    ApplicationContext context = new SpringApplicationBuilder(Main.class)
+      .headless(false)
+      .web(false)
+      .run(args);
 
-    MediaLocator ml = new MediaLocator("file:" + new File("tmp/out.mov").getCanonicalPath());
-
-    ImagesToVideo iTV = new ImagesToVideo();
-    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-    iTV.imagesToVideo(screenSize.width, screenSize.height, recorder.getFrameRate(), new File("test.bin"), ml);
+    context.getBean(SystemTrayManager.class).start();
   }
 
 }

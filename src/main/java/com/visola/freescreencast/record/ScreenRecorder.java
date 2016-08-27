@@ -13,18 +13,41 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+import com.visola.freescreencast.event.RecordingReadyEvent;
+import com.visola.freescreencast.event.StartRecordingEvent;
+import com.visola.freescreencast.event.StopRecordingEvent;
+
+@Component
 public class ScreenRecorder implements Runnable {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ScreenRecorder.class);
+
+  private final ApplicationEventPublisher eventPublisher;
+
+  private String inputFile;
   private int frameCount = 0;
   private long totalTime;
   private long lastScreenshot = -1;
   private boolean running = false;
   private Thread runningThread;
 
+  @Autowired
+  public ScreenRecorder(ApplicationEventPublisher eventPublisher) {
+    this.eventPublisher = eventPublisher;
+  }
+
   public float getFrameRate() {
     return ( (float) frameCount ) * 1000 / ( (float) (totalTime) );
   }
 
+  @EventListener(StartRecordingEvent.class)
   public void start() {
     running = true;
 
@@ -32,11 +55,13 @@ public class ScreenRecorder implements Runnable {
     runningThread.start();
   }
 
+  @EventListener(StopRecordingEvent.class)
   public void stop() throws InterruptedException {
     running = false;
     if (runningThread != null) {
       runningThread.join();
       runningThread = null;
+      eventPublisher.publishEvent(new RecordingReadyEvent(this, inputFile, getFrameRate()));
     }
   }
 
@@ -52,7 +77,8 @@ public class ScreenRecorder implements Runnable {
     }
 
     long start = System.currentTimeMillis();
-    try (DataOutputStream dataOut = new DataOutputStream(new FileOutputStream("test.bin"))) {
+    inputFile = "tmp/" + start + ".bin";
+    try (DataOutputStream dataOut = new DataOutputStream(new FileOutputStream(inputFile))) {
       while (running) {
         BufferedImage screenShot = robot.createScreenCapture(new Rectangle(screenSize));
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
@@ -65,7 +91,7 @@ public class ScreenRecorder implements Runnable {
         frameCount++;
         long now = System.currentTimeMillis();
         if (lastScreenshot > -1) {
-          System.err.printf("Since last frame: %d ms%n", lastScreenshot - now);
+          LOGGER.info("Since last frame: {} ms", now - lastScreenshot);
         }
         lastScreenshot = System.currentTimeMillis();
       }
@@ -75,7 +101,7 @@ public class ScreenRecorder implements Runnable {
 
     long end = System.currentTimeMillis();
     totalTime = end - start;
-    System.err.printf("Total frames: %d, Total time: %d ms, Frames per second: %e%n",
+    LOGGER.debug("Total frames: {}, Total time: {} ms, Frames per second: {}",
         frameCount,
         end - start,
         ( (double) frameCount ) * 1000 / ( (double) (end - start) )

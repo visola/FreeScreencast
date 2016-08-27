@@ -1,13 +1,26 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'org.springframework.boot:spring-boot-gradle-plugin:1.4.0.RELEASE'
+  }
+}
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'application'
+apply plugin: 'spring-boot'
 
 repositories {
   mavenCentral()
 }
 
 dependencies {
+  compile 'com.1stleg:jnativehook:2.0.3'
   compile 'javax.media:jmf:2.1.1e'
+  compile 'org.slf4j:slf4j-api'
+  compile 'org.springframework.boot:spring-boot-starter-web'
 }
 
 mainClassName = 'com.visola.freescreencast.Main'
