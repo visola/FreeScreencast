@@ -3,6 +3,7 @@ buildscript {
     mavenCentral()
   }
   dependencies {
+    classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.0'
     classpath 'org.springframework.boot:spring-boot-gradle-plugin:1.4.0.RELEASE'
   }
 }
@@ -11,6 +12,7 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'application'
 apply plugin: 'spring-boot'
+apply plugin: 'com.google.protobuf'
 
 repositories {
   mavenCentral()
@@ -18,9 +20,24 @@ repositories {
 
 dependencies {
   compile 'com.1stleg:jnativehook:2.0.3'
+  compile 'com.google.protobuf:protobuf-java:3.0.0'
   compile 'javax.media:jmf:2.1.1e'
   compile 'org.slf4j:slf4j-api'
   compile 'org.springframework.boot:spring-boot-starter-web'
 }
 
 mainClassName = 'com.visola.freescreencast.Main'
+
+protobuf {
+  protoc {
+    artifact = 'com.google.protobuf:protoc:3.0.0'
+  }
+}
+
+sourceSets {
+  main {
+    java {
+      srcDir "${buildDir}/generated/source/proto/main/java"
+    }
+  }
+}

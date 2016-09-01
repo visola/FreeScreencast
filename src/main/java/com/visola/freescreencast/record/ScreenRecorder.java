@@ -20,6 +20,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import com.google.protobuf.ByteString;
+import com.visola.freescreencast.Frame;
 import com.visola.freescreencast.event.RecordingReadyEvent;
 import com.visola.freescreencast.event.StartRecordingEvent;
 import com.visola.freescreencast.event.StopRecordingEvent;
@@ -84,9 +86,14 @@ public class ScreenRecorder implements Runnable {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         ImageIO.write(screenShot, "jpg", bytesOut);
 
-        dataOut.writeInt(bytesOut.size());
-        dataOut.writeLong(System.currentTimeMillis() - start);
-        dataOut.write(bytesOut.toByteArray());
+        Frame frame = Frame.newBuilder()
+          .setTime(System.currentTimeMillis() - start)
+          .setScreenshot(ByteString.copyFrom(bytesOut.toByteArray()))
+          .build();
+
+        byte [] frameBytes = frame.toByteArray();
+        dataOut.writeInt(frameBytes.length);
+        dataOut.write(frameBytes);
 
         frameCount++;
         long now = System.currentTimeMillis();

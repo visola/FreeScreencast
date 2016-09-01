@@ -14,6 +14,8 @@ import javax.media.format.VideoFormat;
 import javax.media.protocol.ContentDescriptor;
 import javax.media.protocol.PullBufferStream;
 
+import com.visola.freescreencast.Frame;
+
 public class ImageSourceStream implements PullBufferStream {
 
   private boolean finished = false;
@@ -59,14 +61,16 @@ public class ImageSourceStream implements PullBufferStream {
   public void read(Buffer buffer) throws IOException {
     try {
       int size = dataIn.readInt();
-      long time = dataIn.readLong();
       byte [] bytes = new byte[size];
       dataIn.read(bytes);
 
-      buffer.setTimeStamp(time);
-      buffer.setData(bytes);
+      Frame frame = Frame.parseFrom(bytes);
+      byte [] screenshot = frame.getScreenshot().toByteArray();
+
+      buffer.setTimeStamp(frame.getTime());
+      buffer.setData(screenshot);
       buffer.setOffset(0);
-      buffer.setLength(size);
+      buffer.setLength(screenshot.length);
       buffer.setFormat(format);
       buffer.setFlags(buffer.getFlags() | Buffer.FLAG_KEY_FRAME);
 
