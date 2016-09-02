@@ -1,6 +1,5 @@
 package com.visola.freescreencast.processing;
 
-import java.io.File;
 import java.io.IOException;
 
 import javax.media.Time;
@@ -8,13 +7,14 @@ import javax.media.protocol.ContentDescriptor;
 import javax.media.protocol.PullBufferDataSource;
 import javax.media.protocol.PullBufferStream;
 
-public class OutputDataSource extends PullBufferDataSource {
+import com.visola.freescreencast.processing.screenshot.ScreenshotSourceStream;
+
+public class ScreencastDataSource extends PullBufferDataSource {
 
   private final PullBufferStream[] streams;
 
-  public OutputDataSource(int width, int height, float frameRate, File screenShotsFile) throws IOException {
-    streams = new PullBufferStream[1];
-    streams[0] = new ImageSourceStream(width, height, frameRate, screenShotsFile);
+  public ScreencastDataSource(ScreenshotSourceStream screenshotSourceStream) throws IOException {
+    streams = new PullBufferStream [] {screenshotSourceStream};
   }
 
   @Override

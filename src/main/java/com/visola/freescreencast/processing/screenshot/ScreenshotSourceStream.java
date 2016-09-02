@@ -1,7 +1,6 @@
-package com.visola.freescreencast.processing;
+package com.visola.freescreencast.processing.screenshot;
 
 import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -10,6 +9,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 import javax.media.Buffer;
@@ -20,18 +20,18 @@ import javax.media.protocol.PullBufferStream;
 
 import com.visola.freescreencast.Frame;
 
-public class ImageSourceStream implements PullBufferStream {
+public class ScreenshotSourceStream implements PullBufferStream {
 
   private boolean finished = false;
   private final DataInputStream dataIn;
   private final VideoFormat format;
-  private final BufferedImage cursorImage;
+  private final Set<ScreenshotProcessor> screenshotProcessors;
 
-  public ImageSourceStream(int width, int height, float frameRate, File readFrom) throws IOException {
+  public ScreenshotSourceStream(Set<ScreenshotProcessor> screenshotProcessors, int width, int height, float frameRate, File readFrom) throws IOException {
+    this.screenshotProcessors = screenshotProcessors;
+
     format = new VideoFormat(VideoFormat.JPEG, new Dimension(width, height), Format.NOT_SPECIFIED, Format.byteArray, frameRate);
     dataIn = new DataInputStream(new FileInputStream(readFrom));
-
-    cursorImage = ImageIO.read(getClass().getResourceAsStream("/cursor.png"));
   }
 
   @Override
@@ -74,10 +74,11 @@ public class ImageSourceStream implements PullBufferStream {
       Frame frame = Frame.parseFrom(bytes);
       byte [] originalScreenshot = frame.getScreenshot().toByteArray();
       ByteArrayInputStream imageInput = new ByteArrayInputStream(originalScreenshot);
-
       BufferedImage image = ImageIO.read(imageInput);
-      Graphics2D g2 = (Graphics2D) image.getGraphics();
-      g2.drawImage(cursorImage, frame.getMouseX(), frame.getMouseY(), 20, 30, null);
+
+      for (ScreenshotProcessor processor : screenshotProcessors) {
+        processor.processImage(frame, image);
+      }
 
       ByteArrayOutputStream processedImageOutputStream = new ByteArrayOutputStream();
       ImageIO.write(image, "jpg", processedImageOutputStream);
