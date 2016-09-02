@@ -1,7 +1,6 @@
 package com.visola.freescreencast.processing;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import javax.media.Time;
@@ -13,7 +12,7 @@ public class OutputDataSource extends PullBufferDataSource {
 
   private final PullBufferStream[] streams;
 
-  public OutputDataSource(int width, int height, float frameRate, File screenShotsFile) throws FileNotFoundException {
+  public OutputDataSource(int width, int height, float frameRate, File screenShotsFile) throws IOException {
     streams = new PullBufferStream[1];
     streams[0] = new ImageSourceStream(width, height, frameRate, screenShotsFile);
   }

@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.protobuf.ByteString;
 import com.visola.freescreencast.Frame;
+import com.visola.freescreencast.event.MouseMovedEvent;
 import com.visola.freescreencast.event.RecordingReadyEvent;
 import com.visola.freescreencast.event.StartRecordingEvent;
 import com.visola.freescreencast.event.StopRecordingEvent;
@@ -39,6 +40,9 @@ public class ScreenRecorder implements Runnable {
   private long lastScreenshot = -1;
   private boolean running = false;
   private Thread runningThread;
+
+  private int mouseX = 0;
+  private int mouseY = 0;
 
   @Autowired
   public ScreenRecorder(ApplicationEventPublisher eventPublisher) {
@@ -67,6 +71,12 @@ public class ScreenRecorder implements Runnable {
     }
   }
 
+  @EventListener
+  public void mouseMoved(MouseMovedEvent e) {
+    mouseX = e.getX();
+    mouseY = e.getY();
+  }
+
   @Override
   public void run() {
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -88,6 +98,8 @@ public class ScreenRecorder implements Runnable {
 
         Frame frame = Frame.newBuilder()
           .setTime(System.currentTimeMillis() - start)
+          .setMouseX(mouseX)
+          .setMouseY(mouseY)
           .setScreenshot(ByteString.copyFrom(bytesOut.toByteArray()))
           .build();
 

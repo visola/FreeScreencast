@@ -1,7 +1,6 @@
 package com.visola.freescreencast.processing;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import javax.media.ConfigureCompleteEvent;
@@ -33,7 +32,7 @@ public class ImagesToVideo implements ControllerListener, DataSinkListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ImagesToVideo.class);
 
-  public void imagesToVideo(int width, int height, float frameRate, File screenShotsFile, MediaLocator outML) throws FileNotFoundException {
+  public void imagesToVideo(int width, int height, float frameRate, File screenShotsFile, MediaLocator outML) throws IOException {
     OutputDataSource dataSource = new OutputDataSource(width, height, frameRate, screenShotsFile);
 
     LOGGER.debug("Creating processor...");
