@@ -6,11 +6,13 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.visola.freescreencast.Frame;
 
 @Component
+@Scope("prototype")
 public class MouseImageScreenshotProcessor implements ScreenshotProcessor {
 
   private final BufferedImage cursorImage;

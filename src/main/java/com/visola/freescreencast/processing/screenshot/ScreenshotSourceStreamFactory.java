@@ -2,23 +2,23 @@ package com.visola.freescreencast.processing.screenshot;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ScreenshotSourceStreamFactory {
 
-  private final Set<ScreenshotProcessor> screenshotProcessors;
+  private final ApplicationContext applicationContext;
 
   @Autowired
-  public ScreenshotSourceStreamFactory(Set<ScreenshotProcessor> screenshotProcessors) {
-    this.screenshotProcessors = screenshotProcessors;
+  public ScreenshotSourceStreamFactory(ApplicationContext applicationContext) {
+    this.applicationContext = applicationContext;
   }
 
   public ScreenshotSourceStream createSourceStream(int width, int height, float frameRate, File screenShotsFile) throws IOException {
-    return new ScreenshotSourceStream(screenshotProcessors, width, height, frameRate, screenShotsFile);
+    return new ScreenshotSourceStream(applicationContext.getBeansOfType(ScreenshotProcessor.class).values(), width, height, frameRate, screenShotsFile);
   }
 
 }

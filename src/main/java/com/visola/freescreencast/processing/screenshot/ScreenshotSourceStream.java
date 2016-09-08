@@ -9,7 +9,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Set;
+import java.util.Collection;
 
 import javax.imageio.ImageIO;
 import javax.media.Buffer;
@@ -25,10 +25,10 @@ public class ScreenshotSourceStream implements PullBufferStream {
   private boolean finished = false;
   private final DataInputStream dataIn;
   private final VideoFormat format;
-  private final Set<ScreenshotProcessor> screenshotProcessors;
+  private final Collection<ScreenshotProcessor> screenshotProcessors;
 
-  public ScreenshotSourceStream(Set<ScreenshotProcessor> screenshotProcessors, int width, int height, float frameRate, File readFrom) throws IOException {
-    this.screenshotProcessors = screenshotProcessors;
+  public ScreenshotSourceStream(Collection<ScreenshotProcessor> collection, int width, int height, float frameRate, File readFrom) throws IOException {
+    this.screenshotProcessors = collection;
 
     format = new VideoFormat(VideoFormat.JPEG, new Dimension(width, height), Format.NOT_SPECIFIED, Format.byteArray, frameRate);
     dataIn = new DataInputStream(new FileInputStream(readFrom));
