@@ -9,4 +9,8 @@ message Frame {
 
   int32 mouseX = 3;
   int32 mouseY = 4;
+
+  bool mouseDown = 5;
+  repeated string modifiers = 6;
+
 }

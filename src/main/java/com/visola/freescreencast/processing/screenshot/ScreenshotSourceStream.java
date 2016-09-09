@@ -23,11 +23,13 @@ import com.visola.freescreencast.Frame;
 public class ScreenshotSourceStream implements PullBufferStream {
 
   private boolean finished = false;
+  private final long frameDuration;
   private final DataInputStream dataIn;
   private final VideoFormat format;
   private final Collection<ScreenshotProcessor> screenshotProcessors;
 
   public ScreenshotSourceStream(Collection<ScreenshotProcessor> collection, int width, int height, float frameRate, File readFrom) throws IOException {
+    this.frameDuration = Math.round(1000 / frameRate);
     this.screenshotProcessors = collection;
 
     format = new VideoFormat(VideoFormat.JPEG, new Dimension(width, height), Format.NOT_SPECIFIED, Format.byteArray, frameRate);
@@ -84,10 +86,11 @@ public class ScreenshotSourceStream implements PullBufferStream {
       ImageIO.write(image, "jpg", processedImageOutputStream);
       byte [] processedImage = processedImageOutputStream.toByteArray();
 
+      buffer.setDuration(frameDuration);
       buffer.setTimeStamp(frame.getTime());
       buffer.setData(processedImage);
-      buffer.setOffset(0);
       buffer.setLength(processedImage.length);
+      buffer.setOffset(0);
       buffer.setFormat(format);
       buffer.setFlags(buffer.getFlags() | Buffer.FLAG_KEY_FRAME);
 

@@ -18,27 +18,26 @@ public class GlobalMouseEventListener implements NativeMouseInputListener {
 
   @Override
   public void nativeMouseClicked(NativeMouseEvent e) {
-    
   }
 
   @Override
   public void nativeMousePressed(NativeMouseEvent e) {
-    eventPublisher.publishEvent(new MousePressedEvent(this, e.getX(), e.getY()));
+    eventPublisher.publishEvent(new MousePressedEvent(this, e.getX(), e.getY(), InputModifier.getModifiers(e.getModifiers())));
   }
 
   @Override
   public void nativeMouseReleased(NativeMouseEvent e) {
-    eventPublisher.publishEvent(new MouseReleasedEvent(this, e.getX(), e.getY()));
+    eventPublisher.publishEvent(new MouseReleasedEvent(this, e.getX(), e.getY(), InputModifier.getModifiers(e.getModifiers())));
   }
 
   @Override
   public void nativeMouseMoved(NativeMouseEvent e) {
-    eventPublisher.publishEvent(new MouseMovedEvent(this, e.getX(), e.getY()));
+    eventPublisher.publishEvent(new MouseMovedEvent(this, e.getX(), e.getY(), InputModifier.getModifiers(e.getModifiers())));
   }
 
   @Override
   public void nativeMouseDragged(NativeMouseEvent e) {
-    eventPublisher.publishEvent(new MouseMovedEvent(this, e.getX(), e.getY()));
+    eventPublisher.publishEvent(new MouseMovedEvent(this, e.getX(), e.getY(), InputModifier.getModifiers(e.getModifiers())));
   }
 
 }

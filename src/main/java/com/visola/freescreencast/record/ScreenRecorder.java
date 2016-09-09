@@ -10,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -22,7 +24,11 @@ import org.springframework.stereotype.Component;
 
 import com.google.protobuf.ByteString;
 import com.visola.freescreencast.Frame;
+import com.visola.freescreencast.event.AbstractMouseEvent;
+import com.visola.freescreencast.event.InputModifier;
 import com.visola.freescreencast.event.MouseMovedEvent;
+import com.visola.freescreencast.event.MousePressedEvent;
+import com.visola.freescreencast.event.MouseReleasedEvent;
 import com.visola.freescreencast.event.RecordingReadyEvent;
 import com.visola.freescreencast.event.StartRecordingEvent;
 import com.visola.freescreencast.event.StopRecordingEvent;
@@ -43,6 +49,7 @@ public class ScreenRecorder implements Runnable {
 
   private int mouseX = 0;
   private int mouseY = 0;
+  private Set<InputModifier> mouseModifiers = null;
 
   @Autowired
   public ScreenRecorder(ApplicationEventPublisher eventPublisher) {
@@ -73,8 +80,19 @@ public class ScreenRecorder implements Runnable {
 
   @EventListener
   public void mouseMoved(MouseMovedEvent e) {
-    mouseX = e.getX();
-    mouseY = e.getY();
+    setMousePosition(e);
+  }
+
+  @EventListener
+  public void mousePressed(MousePressedEvent e) {
+    setMousePosition(e);
+    mouseModifiers = e.getModifiers();
+  }
+
+  @EventListener
+  public void mouseReleased(MouseReleasedEvent e) {
+    setMousePosition(e);
+    mouseModifiers = null;
   }
 
   @Override
@@ -96,21 +114,25 @@ public class ScreenRecorder implements Runnable {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         ImageIO.write(screenShot, "jpg", bytesOut);
 
-        Frame frame = Frame.newBuilder()
+        Frame.Builder frameBuilder = Frame.newBuilder()
           .setTime(System.currentTimeMillis() - start)
           .setMouseX(mouseX)
           .setMouseY(mouseY)
-          .setScreenshot(ByteString.copyFrom(bytesOut.toByteArray()))
-          .build();
+          .setScreenshot(ByteString.copyFrom(bytesOut.toByteArray()));
 
-        byte [] frameBytes = frame.toByteArray();
+        if (mouseModifiers != null) {
+          frameBuilder.setMouseDown(true)
+            .addAllModifiers(mouseModifiers.stream().map(InputModifier::name).collect(Collectors.toSet()));
+        }
+
+        byte [] frameBytes = frameBuilder.build().toByteArray();
         dataOut.writeInt(frameBytes.length);
         dataOut.write(frameBytes);
 
         frameCount++;
         long now = System.currentTimeMillis();
         if (lastScreenshot > -1) {
-          LOGGER.info("Since last frame: {} ms", now - lastScreenshot);
+          LOGGER.debug("Since last frame: {} ms", now - lastScreenshot);
         }
         lastScreenshot = System.currentTimeMillis();
       }
@@ -120,11 +142,16 @@ public class ScreenRecorder implements Runnable {
 
     long end = System.currentTimeMillis();
     totalTime = end - start;
-    LOGGER.debug("Total frames: {}, Total time: {} ms, Frames per second: {}",
+    LOGGER.info("Total frames: {}, Total time: {} ms, Frames per second: {}",
         frameCount,
         end - start,
         ( (double) frameCount ) * 1000 / ( (double) (end - start) )
     );
+  }
+
+  private void setMousePosition(AbstractMouseEvent e) {
+    mouseX = e.getX();
+    mouseY = e.getY();
   }
 
 }
