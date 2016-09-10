@@ -19,21 +19,20 @@ import com.visola.freescreencast.record.RecordingStateHolder;
 @Component
 public class SystemTrayManager implements ActionListener {
 
-  private static final String ACTION_START_RECORDING = "Start Recording";
+  private static final String ACTION_RECORD = "Start/Stop Recoding";
 
   private PopupMenu popupMenu = new PopupMenu();
-  private MenuItem miStartRecording = new MenuItem("Start Recording");
+  private MenuItem miRecordControl = new MenuItem("Start Recording");
 
   private final RecordingStateHolder recordingStateHolder;
-
 
   @Autowired
   public SystemTrayManager(RecordingStateHolder recordingStateHolder) {
     this.recordingStateHolder = recordingStateHolder;
 
-    miStartRecording.addActionListener(this);
-    miStartRecording.setActionCommand(ACTION_START_RECORDING);
-    popupMenu.add(miStartRecording);
+    miRecordControl.addActionListener(this);
+    miRecordControl.setActionCommand(ACTION_RECORD);
+    popupMenu.add(miRecordControl);
   }
 
   public void start() {
@@ -52,12 +51,12 @@ public class SystemTrayManager implements ActionListener {
   @Override
   public void actionPerformed(ActionEvent e) {
     switch (e.getActionCommand()) {
-      case ACTION_START_RECORDING:
+      case ACTION_RECORD:
         if (recordingStateHolder.isRecording()) {
-          miStartRecording.setLabel("Start Recording");
+          miRecordControl.setLabel("Start Recording");
           recordingStateHolder.stopRecording(this);
         } else {
-          miStartRecording.setLabel("Stop Recording");
+          miRecordControl.setLabel("Stop Recording");
           recordingStateHolder.startRecording(this);
         }
     }
