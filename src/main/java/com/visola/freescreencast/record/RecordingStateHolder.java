@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import com.visola.freescreencast.event.StartRecordingEvent;
-import com.visola.freescreencast.event.StopRecordingEvent;
+import com.visola.freescreencast.record.event.StartRecordingEvent;
+import com.visola.freescreencast.record.event.StopRecordingEvent;
 
 @Component
 public class RecordingStateHolder {

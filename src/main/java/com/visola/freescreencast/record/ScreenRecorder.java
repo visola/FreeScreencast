@@ -29,9 +29,9 @@ import com.visola.freescreencast.event.InputModifier;
 import com.visola.freescreencast.event.MouseMovedEvent;
 import com.visola.freescreencast.event.MousePressedEvent;
 import com.visola.freescreencast.event.MouseReleasedEvent;
-import com.visola.freescreencast.event.RecordingReadyEvent;
-import com.visola.freescreencast.event.StartRecordingEvent;
-import com.visola.freescreencast.event.StopRecordingEvent;
+import com.visola.freescreencast.record.event.RecordingReadyEvent;
+import com.visola.freescreencast.record.event.StartRecordingEvent;
+import com.visola.freescreencast.record.event.StopRecordingEvent;
 
 @Component
 public class ScreenRecorder implements Runnable {

@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import com.visola.freescreencast.event.RecordingReadyEvent;
+import com.visola.freescreencast.record.event.RecordingReadyEvent;
 
 @Component
 public class ScreencastDataProcessor implements ControllerListener, DataSinkListener {

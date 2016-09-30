@@ -1,4 +1,4 @@
-package com.visola.freescreencast.event;
+package com.visola.freescreencast.record.event;
 
 import org.springframework.context.ApplicationEvent;
 
