@@ -1,0 +1,4 @@
+data:
+  baseDir: data
+  inputDir: input
+  outputDir: output

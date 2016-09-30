@@ -8,8 +8,10 @@ import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,7 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -39,10 +42,12 @@ public class ScreenRecorder implements Runnable {
   private static final Logger LOGGER = LoggerFactory.getLogger(ScreenRecorder.class);
 
   private final ApplicationEventPublisher eventPublisher;
+  private final String baseDataDirectory;
+  private final String inputDirectory;
 
   private String inputFile;
+  private long startedAt;
   private int frameCount = 0;
-  private long totalTime;
   private long lastScreenshot = -1;
   private boolean running = false;
   private Thread runningThread;
@@ -52,17 +57,24 @@ public class ScreenRecorder implements Runnable {
   private Set<InputModifier> mouseModifiers = null;
 
   @Autowired
-  public ScreenRecorder(ApplicationEventPublisher eventPublisher) {
+  public ScreenRecorder(ApplicationEventPublisher eventPublisher,
+                        @Value("${data.baseDir}") String baseDataDirectory,
+                        @Value("${data.inputDir}") String inputDirectory) {
     this.eventPublisher = eventPublisher;
+    this.baseDataDirectory = baseDataDirectory;
+    this.inputDirectory = inputDirectory;
   }
 
-  public float getFrameRate() {
-    return ( (float) frameCount ) * 1000 / ( (float) (totalTime) );
-  }
-
-  @EventListener(StartRecordingEvent.class)
-  public void start() {
+  @EventListener
+  public void start(StartRecordingEvent startRecordingEvent) {
     running = true;
+    startedAt = startRecordingEvent.getStarted();
+
+    String fullInputPath = baseDataDirectory + "/" + startRecordingEvent.getStarted() + "/" + inputDirectory + "/";
+    inputFile = fullInputPath + "screenRecording.bin";
+
+    // Make sure parent directories exist
+    new File(fullInputPath).mkdirs();
 
     runningThread = new Thread(this, "Screen Recorder");
     runningThread.start();
@@ -74,7 +86,7 @@ public class ScreenRecorder implements Runnable {
     if (runningThread != null) {
       runningThread.join();
       runningThread = null;
-      eventPublisher.publishEvent(new RecordingReadyEvent(this, inputFile, getFrameRate()));
+      eventPublisher.publishEvent(new RecordingReadyEvent(this, startedAt));
     }
   }
 
@@ -107,10 +119,15 @@ public class ScreenRecorder implements Runnable {
     }
 
     long start = System.currentTimeMillis();
-    inputFile = "tmp/" + start + ".bin";
+    Rectangle recordingSize = new Rectangle(screenSize);
+
     try (DataOutputStream dataOut = new DataOutputStream(new FileOutputStream(inputFile))) {
+      dataOut.writeLong(0); // Placeholder for duration
+      dataOut.writeInt(0); // Placeholder for frame count
+      dataOut.writeInt(recordingSize.width);
+      dataOut.writeInt(recordingSize.height);
       while (running) {
-        BufferedImage screenShot = robot.createScreenCapture(new Rectangle(screenSize));
+        BufferedImage screenShot = robot.createScreenCapture(recordingSize);
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         ImageIO.write(screenShot, "jpg", bytesOut);
 
@@ -137,11 +154,17 @@ public class ScreenRecorder implements Runnable {
         lastScreenshot = System.currentTimeMillis();
       }
     } catch (IOException ioe) {
-      ioe.printStackTrace();
+      LOGGER.error("Error while capturing screens.", ioe);
     }
 
     long end = System.currentTimeMillis();
-    totalTime = end - start;
+    try (RandomAccessFile randomAccessFile = new RandomAccessFile(inputFile, "rw")) {
+      randomAccessFile.writeLong(end - start);
+      randomAccessFile.writeInt(frameCount);
+    } catch (IOException ioe) {
+      LOGGER.error("Error while recording screen capture metadata.", ioe);
+    }
+
     LOGGER.info("Total frames: {}, Total time: {} ms, Frames per second: {}",
         frameCount,
         end - start,

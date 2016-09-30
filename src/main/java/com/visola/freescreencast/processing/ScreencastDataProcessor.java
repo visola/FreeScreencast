@@ -1,7 +1,5 @@
 package com.visola.freescreencast.processing;
 
-import java.awt.Dimension;
-import java.awt.Toolkit;
 import java.io.File;
 import java.io.IOException;
 
@@ -30,6 +28,7 @@ import javax.media.protocol.FileTypeDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -40,10 +39,16 @@ public class ScreencastDataProcessor implements ControllerListener, DataSinkList
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ScreencastDataProcessor.class);
 
+  private final String baseDataDirectory;
+  private final String outputDirectory;
   private final ScreencastDataSourceFactory screencastDataSourceFactory;
 
   @Autowired
-  public ScreencastDataProcessor(ScreencastDataSourceFactory screencastDataSourceFactory) {
+  public ScreencastDataProcessor(ScreencastDataSourceFactory screencastDataSourceFactory,
+                                 @Value("${data.baseDir}") String baseDataDirectory,
+                                 @Value("${data.outputDir}") String outputDirectory) {
+    this.baseDataDirectory = baseDataDirectory;
+    this.outputDirectory = outputDirectory;
     this.screencastDataSourceFactory = screencastDataSourceFactory;
   }
 
@@ -52,10 +57,9 @@ public class ScreencastDataProcessor implements ControllerListener, DataSinkList
     LOGGER.info("Started processing recording...");
     try {
       long started = System.currentTimeMillis();
-      MediaLocator ml = new MediaLocator("file:" + new File(recordingReadyEvent.getInputFile() + ".mov").getCanonicalPath());
+      MediaLocator ml = new MediaLocator("file:" + new File(String.format("%s/%d/%s/screencast.mov", baseDataDirectory, recordingReadyEvent.getStartedAt(), outputDirectory)).getCanonicalPath());
 
-      Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-      processCapturedData(screenSize.width, screenSize.height, recordingReadyEvent.getFrameRate(), new File(recordingReadyEvent.getInputFile()), ml);
+      processCapturedData(recordingReadyEvent.getStartedAt(), ml);
       LOGGER.info("Processing recording finished. Took {}ms", System.currentTimeMillis() - started);
     } catch (IOException e) {
       LOGGER.error("Error while processing screencast.", e);
@@ -63,8 +67,8 @@ public class ScreencastDataProcessor implements ControllerListener, DataSinkList
     }
   }
 
-  public void processCapturedData(int width, int height, float frameRate, File screenShotsFile, MediaLocator outML) throws IOException {
-    ScreencastDataSource dataSource = screencastDataSourceFactory.createScreencastDataSource(width, height, frameRate, screenShotsFile);
+  public void processCapturedData(long startedAt, MediaLocator outML) throws IOException {
+    ScreencastDataSource dataSource = screencastDataSourceFactory.createScreencastDataSource(startedAt);
 
     LOGGER.debug("Creating processor...");
     final Processor p;

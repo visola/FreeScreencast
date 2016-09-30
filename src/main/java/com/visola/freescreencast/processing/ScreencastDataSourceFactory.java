@@ -1,6 +1,5 @@
 package com.visola.freescreencast.processing;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.springframework.stereotype.Component;
@@ -17,8 +16,8 @@ public class ScreencastDataSourceFactory {
     this.screenshotSourceStreamFactory = screenshotSourceStreamFactory;
   }
 
-  public ScreencastDataSource createScreencastDataSource(int width, int height, float frameRate, File screenShotsFile) throws IOException {
-    ScreenshotSourceStream screenshotSourceStream = screenshotSourceStreamFactory.createSourceStream(width, height, frameRate, screenShotsFile);
+  public ScreencastDataSource createScreencastDataSource(long startedAt) throws IOException {
+    ScreenshotSourceStream screenshotSourceStream = screenshotSourceStreamFactory.createSourceStream(startedAt);
     return new ScreencastDataSource(screenshotSourceStream);
   }
 

@@ -28,12 +28,18 @@ public class ScreenshotSourceStream implements PullBufferStream {
   private final VideoFormat format;
   private final Collection<ScreenshotProcessor> screenshotProcessors;
 
-  public ScreenshotSourceStream(Collection<ScreenshotProcessor> collection, int width, int height, float frameRate, File readFrom) throws IOException {
-    this.frameDuration = Math.round(1000 / frameRate);
+  public ScreenshotSourceStream(Collection<ScreenshotProcessor> collection, File readFrom) throws IOException {
+    dataIn = new DataInputStream(new FileInputStream(readFrom));
+    long duration = dataIn.readLong();
+    int frameCount = dataIn.readInt();
+    int width = dataIn.readInt();
+    int height = dataIn.readInt();
+
+    this.frameDuration = Math.round( (double) duration / (double) frameCount);
     this.screenshotProcessors = collection;
 
+    float frameRate = ((float) 1000 * frameCount) / (float) duration;
     format = new VideoFormat(VideoFormat.JPEG, new Dimension(width, height), Format.NOT_SPECIFIED, Format.byteArray, frameRate);
-    dataIn = new DataInputStream(new FileInputStream(readFrom));
   }
 
   @Override

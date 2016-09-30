@@ -6,21 +6,15 @@ public class RecordingReadyEvent extends ApplicationEvent {
 
   private static final long serialVersionUID = 1L;
 
-  private final float frameRate;
-  private final String inputFile;
+  private final long startedAt;
 
-  public RecordingReadyEvent(Object source, String inputFile, Float frameRate) {
+  public RecordingReadyEvent(Object source, long startedAt) {
     super(source);
-    this.frameRate = frameRate;
-    this.inputFile = inputFile;
+    this.startedAt = startedAt;
   }
 
-  public float getFrameRate() {
-    return frameRate;
-  }
-
-  public String getInputFile() {
-    return inputFile;
+  public long getStartedAt() {
+    return startedAt;
   }
 
 }
