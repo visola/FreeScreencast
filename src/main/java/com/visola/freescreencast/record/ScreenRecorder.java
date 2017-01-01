@@ -1,9 +1,7 @@
 package com.visola.freescreencast.record;
 
-import java.awt.AWTException;
 import java.awt.Dimension;
 import java.awt.Rectangle;
-import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +17,8 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Java2DFrameConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,10 +52,10 @@ public class ScreenRecorder {
   private Long finishedAt = null;
   private int frameCount = 0;
   private Long lastScreenshot = null;
-  
+
   private BlockingQueue<FrameToSave> framesToSave = new LinkedBlockingQueue<>();
-  private Thread runningThread;
   private Thread savingThread;
+  private Thread screenshotThread;
 
   private int mouseX = 0;
   private int mouseY = 0;
@@ -85,8 +85,8 @@ public class ScreenRecorder {
     // Make sure parent directories exist
     new File(fullInputPath).mkdirs();
 
-    runningThread = new Thread(this::takeScreenshot, "Screen Shooter");
-    runningThread.start();
+    screenshotThread = new Thread(this::takeScreenshot, "Screen Shooter");
+    screenshotThread.start();
 
     savingThread = new Thread(this::saveImages, "Image Saver");
     savingThread.start();
@@ -95,9 +95,9 @@ public class ScreenRecorder {
   @EventListener(StopRecordingEvent.class)
   public void stop() throws InterruptedException {
     finishedAt = System.currentTimeMillis();
-    if (runningThread != null) {
-      runningThread.join();
-      runningThread = null;
+    if (screenshotThread != null) {
+      screenshotThread.join();
+      screenshotThread = null;
 
       savingThread.join();
       savingThread = null;
@@ -123,6 +123,21 @@ public class ScreenRecorder {
     mouseModifiers = null;
   }
 
+  private void saveEndOfStream() {
+    try (RandomAccessFile randomAccessFile = new RandomAccessFile(inputFile, "rw")) {
+      randomAccessFile.writeLong(finishedAt- startedAt);
+      randomAccessFile.writeInt(frameCount);
+    } catch (IOException ioe) {
+      LOGGER.error("Error while recording screen capture metadata.", ioe);
+    }
+
+    LOGGER.info("Total frames: {}, Total time: {} ms, Frames per second: {}",
+        frameCount,
+        finishedAt - startedAt,
+        ( (double) frameCount ) * 1000 / ( (double) (finishedAt - startedAt) )
+    );
+  }
+
   public void saveImages() {
     try (DataOutputStream dataOut = new DataOutputStream(new FileOutputStream(inputFile))) {
       dataOut.writeLong(0); // Placeholder for duration
@@ -132,6 +147,10 @@ public class ScreenRecorder {
 
       while (finishedAt == null) {
         FrameToSave toSave = framesToSave.poll();
+        if (framesToSave.size() >= 10) {
+          // Drop frame if queue is too large
+          continue;
+        }
         if (toSave != null) {
           saveFrame(dataOut, toSave);
         }
@@ -145,6 +164,42 @@ public class ScreenRecorder {
       saveEndOfStream();
     } catch (IOException ioe) {
       LOGGER.error("Error while capturing screens.", ioe);
+    }
+  }
+
+  public void takeScreenshot() {
+    Java2DFrameConverter converter = new Java2DFrameConverter();
+
+    FFmpegFrameGrabber frameGrabber = new FFmpegFrameGrabber("1");
+    frameGrabber.setFormat("avfoundation");
+    frameGrabber.setFrameRate(30);
+    frameGrabber.setImageWidth(recordingSize.width);
+    frameGrabber.setImageHeight(recordingSize.height);
+
+    try {
+      frameGrabber.start();
+  
+      while (finishedAt == null) {
+        try {
+          long startScreenshot = System.currentTimeMillis();
+          org.bytedeco.javacv.Frame frame = frameGrabber.grab();
+          LOGGER.trace("Screen grabbed in {}ms", System.currentTimeMillis() - startScreenshot);
+
+          long convertFrameToImage = System.currentTimeMillis();
+          BufferedImage image = converter.convert(frame);
+          LOGGER.trace("Converted frame to image in {}ms", System.currentTimeMillis() - convertFrameToImage);
+
+          framesToSave.put(new FrameToSave(image,
+              System.currentTimeMillis() - startedAt,
+              mouseX,
+              mouseY,
+              mouseModifiers == null ? null : mouseModifiers.stream().map(InputModifier::name).collect(Collectors.toSet())));
+        } catch (InterruptedException e) {
+          LOGGER.warn("Screenshot thread interrupted.", e);
+        }
+      }
+    } catch (FFmpegFrameGrabber.Exception fge) {
+      LOGGER.error("FFmpeg error.", fge);
     }
   }
 
@@ -177,49 +232,6 @@ public class ScreenRecorder {
       LOGGER.trace("Since last frame: {} ms, queue size: {}", now - lastScreenshot, framesToSave.size());
     }
     lastScreenshot = System.currentTimeMillis();
-  }
-
-  private void saveEndOfStream() {
-    try (RandomAccessFile randomAccessFile = new RandomAccessFile(inputFile, "rw")) {
-      randomAccessFile.writeLong(finishedAt- startedAt);
-      randomAccessFile.writeInt(frameCount);
-    } catch (IOException ioe) {
-      LOGGER.error("Error while recording screen capture metadata.", ioe);
-    }
-
-    LOGGER.info("Total frames: {}, Total time: {} ms, Frames per second: {}",
-        frameCount,
-        finishedAt - startedAt,
-        ( (double) frameCount ) * 1000 / ( (double) (finishedAt - startedAt) )
-    );
-  }
-
-  public void takeScreenshot() {
-    Robot robot;
-    try {
-      robot = new Robot();
-    } catch (AWTException e) {
-      e.printStackTrace();
-      return;
-    }
-
-    while (finishedAt == null) {
-      try {
-        framesToSave.put(new FrameToSave(takeScreenshot(robot, recordingSize),
-            System.currentTimeMillis() - startedAt,
-            mouseX,
-            mouseY,
-            mouseModifiers == null ? null : mouseModifiers.stream().map(InputModifier::name).collect(Collectors.toSet())));
-      } catch (InterruptedException e) {
-      }
-    }
-  }
-
-  private BufferedImage takeScreenshot(Robot robot, Rectangle recordingSize) {
-    long startScreenshot = System.currentTimeMillis();
-    BufferedImage screenShot = robot.createScreenCapture(recordingSize);
-    LOGGER.trace("Screen shot time: {}ms", System.currentTimeMillis() - startScreenshot);
-    return screenShot;
   }
 
   private void setMousePosition(AbstractMouseEvent e) {
