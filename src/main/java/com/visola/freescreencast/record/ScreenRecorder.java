@@ -6,7 +6,6 @@ import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -22,7 +21,6 @@ import org.bytedeco.javacv.Java2DFrameConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -44,8 +42,6 @@ public class ScreenRecorder {
   private static final Logger LOGGER = LoggerFactory.getLogger(ScreenRecorder.class);
 
   private final ApplicationEventPublisher eventPublisher;
-  private final String baseDataDirectory;
-  private final String inputDirectory;
 
   private String inputFile;
   private Long startedAt = null;
@@ -64,12 +60,8 @@ public class ScreenRecorder {
   private final Rectangle recordingSize;
 
   @Autowired
-  public ScreenRecorder(ApplicationEventPublisher eventPublisher,
-                        @Value("${data.baseDir}") String baseDataDirectory,
-                        @Value("${data.inputDir}") String inputDirectory) {
+  public ScreenRecorder(ApplicationEventPublisher eventPublisher) {
     this.eventPublisher = eventPublisher;
-    this.baseDataDirectory = baseDataDirectory;
-    this.inputDirectory = inputDirectory;
 
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     recordingSize = new Rectangle(screenSize);
@@ -77,13 +69,9 @@ public class ScreenRecorder {
 
   @EventListener
   public void start(StartRecordingEvent startRecordingEvent) {
-    startedAt = startRecordingEvent.getStarted();
+    startedAt = startRecordingEvent.getStartedAt();
 
-    String fullInputPath = baseDataDirectory + "/" + startRecordingEvent.getStarted() + "/" + inputDirectory + "/";
-    inputFile = fullInputPath + "screenRecording.bin";
-
-    // Make sure parent directories exist
-    new File(fullInputPath).mkdirs();
+    inputFile = startRecordingEvent.getInputDirectory().getPath() + "/screenRecording.bin";
 
     screenshotThread = new Thread(this::takeScreenshot, "Screen Shooter");
     screenshotThread.start();
