@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
 
-import com.visola.freescreencast.event.GlobalMouseEventListener;
+import com.visola.freescreencast.record.MouseRecorder;
 import com.visola.freescreencast.ui.SystemTrayManager;
 
 @SpringBootApplication
@@ -26,8 +26,8 @@ public class Main {
         .run(args);
 
     GlobalScreen.registerNativeHook();
-    GlobalScreen.addNativeMouseListener(context.getBean(GlobalMouseEventListener.class));
-    GlobalScreen.addNativeMouseMotionListener(context.getBean(GlobalMouseEventListener.class));
+    GlobalScreen.addNativeMouseListener(context.getBean(MouseRecorder.class));
+    GlobalScreen.addNativeMouseMotionListener(context.getBean(MouseRecorder.class));
 
     context.getBean(SystemTrayManager.class).start();
   }

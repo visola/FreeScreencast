@@ -3,8 +3,7 @@ syntax = "proto3";
 option java_package = "com.visola.freescreencast";
 option java_multiple_files = true;
 
-message Frame {
-  bytes screenshot = 1;
+message MouseFrame {
   int64 time = 2;
 
   int32 mouseX = 3;
@@ -12,5 +11,4 @@ message Frame {
 
   bool mouseDown = 5;
   repeated string modifiers = 6;
-
 }

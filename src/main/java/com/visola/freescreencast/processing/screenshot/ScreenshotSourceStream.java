@@ -18,8 +18,6 @@ import javax.media.format.VideoFormat;
 import javax.media.protocol.ContentDescriptor;
 import javax.media.protocol.PullBufferStream;
 
-import com.visola.freescreencast.Frame;
-
 public class ScreenshotSourceStream implements PullBufferStream {
 
   private boolean finished = false;
@@ -75,17 +73,17 @@ public class ScreenshotSourceStream implements PullBufferStream {
   @Override
   public void read(Buffer buffer) throws IOException {
     try {
-      int size = dataIn.readInt();
+      int size = (int) dataIn.readLong();
+      long time = dataIn.readLong();
+
       byte [] bytes = new byte[size];
       dataIn.read(bytes);
 
-      Frame frame = Frame.parseFrom(bytes);
-      byte [] originalScreenshot = frame.getScreenshot().toByteArray();
-      ByteArrayInputStream imageInput = new ByteArrayInputStream(originalScreenshot);
+      ByteArrayInputStream imageInput = new ByteArrayInputStream(bytes);
       BufferedImage image = ImageIO.read(imageInput);
 
       for (ScreenshotProcessor processor : screenshotProcessors) {
-        processor.processImage(frame, image);
+        processor.processImage(time, image);
       }
 
       ByteArrayOutputStream processedImageOutputStream = new ByteArrayOutputStream();
@@ -93,7 +91,7 @@ public class ScreenshotSourceStream implements PullBufferStream {
       byte [] processedImage = processedImageOutputStream.toByteArray();
 
       buffer.setDuration(frameDuration);
-      buffer.setTimeStamp(frame.getTime());
+      buffer.setTimeStamp(time);
       buffer.setData(processedImage);
       buffer.setLength(processedImage.length);
       buffer.setOffset(0);
