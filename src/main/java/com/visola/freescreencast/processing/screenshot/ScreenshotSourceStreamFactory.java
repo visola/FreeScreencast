@@ -2,6 +2,7 @@ package com.visola.freescreencast.processing.screenshot;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,8 +26,12 @@ public class ScreenshotSourceStreamFactory {
   }
 
   public ScreenshotSourceStream createSourceStream(long startedAt) throws IOException {
-    File inputFile = new File(String.format("%s/%d/%s/screenRecording.bin", baseDataDirectory, startedAt, inputDirectory));
-    return new ScreenshotSourceStream(applicationContext.getBeansOfType(ScreenshotProcessor.class).values(), inputFile);
+    File inputDirectoryFile = new File(String.format("%s/%d/%s", baseDataDirectory, startedAt, inputDirectory));
+    File inputFile = new File(inputDirectoryFile, "screenRecording.bin");
+
+    Collection<ScreenshotProcessor> screenshotProcessors = applicationContext.getBeansOfType(ScreenshotProcessor.class).values();
+    screenshotProcessors.forEach(sp -> sp.setInputDirectory(inputDirectoryFile));
+    return new ScreenshotSourceStream(screenshotProcessors, inputFile);
   }
 
 }
